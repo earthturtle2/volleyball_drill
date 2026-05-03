@@ -1,0 +1,3 @@
+# 若服务器 npm 报 mirrors.tencentyun.com ENOTFOUND，可拷贝为 ~/.npmrc 或本仓库根 .npmrc（勿提交含 token 的内容）
+# registry=https://registry.npmjs.org/
+# registry=https://registry.npmmirror.com

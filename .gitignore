@@ -1,0 +1,11 @@
+node_modules
+dist
+**/dist
+.env
+.env.local
+.DS_Store
+*.log
+.turbo
+.drizzle
+data/*.db
+data/*.db-*

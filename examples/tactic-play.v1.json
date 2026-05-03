@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "name": "5-1 接发到四号位",
+    "description": "五号位一传到位，二传拉开给四号位主攻。",
+    "category": "接发站位",
+    "tags": ["serve_receive", "outside", "U15"],
+    "court": {
+      "preset": "full",
+      "orientation": "home_on_right",
+      "sizeMeters": { "length": 18, "width": 9 }
+    },
+    "durationMs": 6000
+  },
+  "teams": {
+    "offense": { "id": "home", "label": "本方", "color": "#f97316" },
+    "defense": { "id": "away", "label": "对方", "color": "#38bdf8" }
+  },
+  "actors": [
+    { "id": "o2", "type": "player", "team": "offense", "number": 2, "label": "2" },
+    { "id": "o4", "type": "player", "team": "offense", "number": 4, "label": "4" },
+    { "id": "o5", "type": "player", "team": "offense", "number": 5, "label": "5" },
+    { "id": "d1", "type": "player", "team": "defense", "number": 1, "label": "D1" },
+    { "id": "ball", "type": "ball", "heldBy": "d1" }
+  ],
+  "keyframes": [
+    { "t": 0, "poses": { "d1": { "x": 0.08, "y": 0.5 }, "o5": { "x": 0.82, "y": 0.72 }, "o2": { "x": 0.62, "y": 0.48 }, "o4": { "x": 0.62, "y": 0.76 } } },
+    { "t": 3000, "poses": { "d1": { "x": 0.1, "y": 0.5 }, "o5": { "x": 0.76, "y": 0.68 }, "o2": { "x": 0.56, "y": 0.5 }, "o4": { "x": 0.58, "y": 0.78 } } },
+    { "t": 6000, "poses": { "d1": { "x": 0.1, "y": 0.5 }, "o5": { "x": 0.8, "y": 0.7 }, "o2": { "x": 0.58, "y": 0.5 }, "o4": { "x": 0.53, "y": 0.78 } } }
+  ],
+  "events": [
+    { "t": 900, "kind": "pass", "from": "d1", "to": "o5", "note": "对方发球到五号位。" },
+    { "t": 2800, "kind": "pass", "from": "o5", "to": "o2", "note": "一传到二传点。" },
+    { "t": 4600, "kind": "pass", "from": "o2", "to": "o4", "note": "二传拉开给四号位。" }
+  ],
+  "interpolation": { "position": "linear", "facing": "shortestAngle" },
+  "rules": { "coordinateSystem": "normalized", "bounds": { "x": [0, 1], "y": [0, 1] } }
+}

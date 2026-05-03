@@ -1,0 +1,13 @@
+#!/bin/bash
+# post-receive hook — 由 setup-server.sh 自动安装到 bare repo
+# 手动安装: cp deploy/post-receive.example /data/git/volleyball_drill.git/hooks/post-receive && chmod +x ...
+set -euo pipefail
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && source "$NVM_DIR/nvm.sh"
+APP="/data/node-apps/volleyball_drill"
+echo ">>> checkout"
+git --work-tree="$APP" --git-dir="$(cd "$(dirname "$0")/.."; pwd)" checkout -f main
+cd "$APP"
+echo ">>> build & restart"
+bash scripts/server-release.sh
+echo ">>> deploy done"

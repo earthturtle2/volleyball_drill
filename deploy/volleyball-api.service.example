@@ -1,0 +1,27 @@
+# （可选）当前生产推荐用 PM2 + ecosystem.config.cjs，本文件为不用 PM2 时的参考。
+# 复制为 /etc/systemd/system/volleyball-api.service 后：
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now volleyball-api
+#
+# 将 User/Group 改为能读取 /data/node-apps/volleyball_drill 的部署用户（与目录属主一致）。
+# 与 Nginx 反代一致：需 Environment=PORT=3003 或使用含 PORT=3003 的 EnvironmentFile。
+
+
+[Unit]
+Description=Volleyball drill API (Node)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/data/node-apps/volleyball_drill
+EnvironmentFile=/data/node-apps/volleyball_drill/.env
+# 若 .env 未设 PORT，可取消下行注释
+# Environment=PORT=3003
+ExecStart=/usr/bin/node apps/api/dist/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

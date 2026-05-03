@@ -1,0 +1,19 @@
+{
+  "name": "volleyball-drill",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev -w @volleyball/web\" \"npm run dev -w @volleyball/api\"",
+    "build": "npm run build -w @volleyball/shared && npm run build -w @volleyball/api && npm run build -w @volleyball/web",
+    "db:push": "npm run db:push -w @volleyball/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.60.2"
+  }
+}
