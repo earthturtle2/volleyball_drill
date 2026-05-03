@@ -1,6 +1,9 @@
 {
   "name": "volleyball-drill",
   "private": true,
+  "engines": {
+    "node": ">=20"
+  },
   "workspaces": [
     "apps/*",
     "packages/*"

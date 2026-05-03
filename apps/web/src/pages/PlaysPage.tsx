@@ -86,6 +86,7 @@ export function PlaysPage() {
         tags: [] as string[],
         document: withDocumentCategory(DEFAULT_TACTIC_DOCUMENT, category),
         teamIds: [] as string[],
+        libraryScope: "hidden" as const,
       };
       const res = await api<{ id: string }>("/api/v1/plays", {
         method: "POST",

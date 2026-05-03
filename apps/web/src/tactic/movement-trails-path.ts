@@ -8,7 +8,7 @@ export interface MovementTrailPiece {
   end: SvgPoint;
   cp: SvgPoint | null;
   points: SvgPoint[];
-  isDribble: boolean;
+  isDuringTouch: boolean;
 }
 
 interface QuadraticCurve {
@@ -70,51 +70,16 @@ export function sampleQuadBezier(
   return pts;
 }
 
-export function wavyPathD(points: SvgPoint[], amp: number = 1.8, waveLen: number = 5): string {
+export function polylinePathD(points: SvgPoint[]): string {
   if (points.length < 2) return "";
-  let total = 0;
-  const cum = [0];
-  for (let i = 1; i < points.length; i++) {
-    const dx = points[i][0] - points[i - 1][0];
-    const dy = points[i][1] - points[i - 1][1];
-    total += Math.sqrt(dx * dx + dy * dy);
-    cum.push(total);
-  }
-  if (total < 1)
-    return `M ${points[0][0]} ${points[0][1]} L ${points[points.length - 1][0]} ${points[points.length - 1][1]}`;
-
-  const waves = Math.max(2, Math.round(total / waveLen));
-  const steps = waves * 4;
-  let d = `M ${points[0][0]} ${points[0][1]}`;
-
-  for (let si = 1; si <= steps; si++) {
-    const t = si / steps;
-    const dist = t * total;
-    let seg = 0;
-    for (let j = 1; j < cum.length; j++) {
-      if (cum[j] >= dist) {
-        seg = j - 1;
-        break;
-      }
-    }
-    const segLen = cum[seg + 1] - cum[seg];
-    const segT = segLen > 0 ? (dist - cum[seg]) / segLen : 0;
-    const px = points[seg][0] + (points[seg + 1][0] - points[seg][0]) * segT;
-    const py = points[seg][1] + (points[seg + 1][1] - points[seg][1]) * segT;
-    const dx = points[seg + 1][0] - points[seg][0];
-    const dy = points[seg + 1][1] - points[seg][1];
-    const sl = Math.sqrt(dx * dx + dy * dy) || 1;
-    const nx = -dy / sl;
-    const ny = dx / sl;
-    const w = si === steps ? 0 : Math.sin(t * waves * 2 * Math.PI) * amp;
-    d += ` L ${(px + nx * w).toFixed(2)} ${(py + ny * w).toFixed(2)}`;
-  }
-  return d;
+  return points
+    .map((point, idx) => `${idx === 0 ? "M" : "L"} ${point[0].toFixed(2)} ${point[1].toFixed(2)}`)
+    .join(" ");
 }
 
-function isMovementDribble(doc: TacticDocumentV1, actorId: string, tMs: number): boolean {
-  // Movement style follows ball possession moments, not keyframe boundaries.
-  // During pass flight nobody is dribbling; the receiver starts at pass.t.
+function isMovementDuringTouch(doc: TacticDocumentV1, actorId: string, tMs: number): boolean {
+  // Movement style follows volleyball touch moments, not keyframe boundaries.
+  // During ball flight nobody is shown as touching the ball; the receiver touch starts at pass.t.
   if (findInFlightPass(doc, tMs)) return false;
   return resolveBallHolderAt(doc, tMs) === actorId;
 }
@@ -122,7 +87,7 @@ function isMovementDribble(doc: TacticDocumentV1, actorId: string, tMs: number):
 function eventSplitCandidates(doc: TacticDocumentV1, t0: number, t1: number): number[] {
   const candidates: number[] = [];
   for (const e of doc.events ?? []) {
-    if (e.kind === "pass" && e.from && e.to) {
+    if ((e.kind === "pass" || e.kind === "ball_action") && e.from && e.to) {
       const flightStart = Math.max(0, e.t - passFlyMs(doc, e.t));
       candidates.push(flightStart, e.t);
     } else if (e.kind === "possess" || e.kind === "possess_end") {
@@ -138,8 +103,8 @@ function actorMovementSplitTimes(doc: TacticDocumentV1, actorId: string, t0: num
   return eventSplitCandidates(doc, t0, t1).filter((t) => {
     const beforeDt = Math.min(STATE_SAMPLE_EPS_MS, (t - t0) / 2);
     const afterDt = Math.min(STATE_SAMPLE_EPS_MS, (t1 - t) / 2);
-    const before = isMovementDribble(doc, actorId, t - beforeDt);
-    const after = isMovementDribble(doc, actorId, t + afterDt);
+    const before = isMovementDuringTouch(doc, actorId, t - beforeDt);
+    const after = isMovementDuringTouch(doc, actorId, t + afterDt);
     return before !== after;
   });
 }
@@ -173,7 +138,7 @@ export function movementTrailPieces({
 
     const u0 = (startT - t0) / duration;
     const u1 = (endT - t0) / duration;
-    const isDribble = isMovementDribble(doc, actorId, (startT + endT) / 2);
+    const isDuringTouch = isMovementDuringTouch(doc, actorId, (startT + endT) / 2);
 
     if (cp) {
       const curve = sliceQuadratic(p0, cp, p1, u0, u1);
@@ -182,7 +147,7 @@ export function movementTrailPieces({
         end: curve.p1,
         cp: curve.cp,
         points: sampleQuadBezier(curve.p0, curve.cp, curve.p1, 30),
-        isDribble,
+        isDuringTouch,
       });
     } else {
       const start = lerpPoint(p0, p1, u0);
@@ -192,7 +157,7 @@ export function movementTrailPieces({
         end,
         cp: null,
         points: [start, end],
-        isDribble,
+        isDuringTouch,
       });
     }
   }

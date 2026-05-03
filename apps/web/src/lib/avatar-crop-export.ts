@@ -2,7 +2,7 @@ import type { Area } from "react-easy-crop";
 
 const OUTPUT = 256;
 const MAX_DATA_URL_LEN = 100_000;
-const CIRCLE_BG = "#122a17";
+const CIRCLE_BG = "#031024";
 
 export function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

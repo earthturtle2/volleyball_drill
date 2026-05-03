@@ -7,6 +7,8 @@ import { useT } from "../i18n";
 type TeamPlayer = { id: string; name: string; number: number };
 type Team = { id: string; name: string; color: string; players: TeamPlayer[]; createdAt: string };
 
+const DEFAULT_TEAM_COLOR = "#38bdf8";
+
 function newPlayer(number: number): TeamPlayer {
   return {
     id: `tp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}-${number}`,
@@ -95,7 +97,7 @@ export function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [color, setColor] = useState("#2e7d32");
+  const [color, setColor] = useState(DEFAULT_TEAM_COLOR);
   const [players, setPlayers] = useState<TeamPlayer[]>(() => defaultPlayers());
   const [editId, setEditId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
@@ -138,7 +140,7 @@ export function TeamsPage() {
         body: JSON.stringify({ name: name.trim(), color, players: normalizePlayers(players) }),
       });
       setName("");
-      setColor("#2e7d32");
+      setColor(DEFAULT_TEAM_COLOR);
       setPlayers(defaultPlayers());
       await load();
     } catch (e) {

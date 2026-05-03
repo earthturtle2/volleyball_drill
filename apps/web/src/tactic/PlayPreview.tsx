@@ -9,7 +9,7 @@ import {
 import { CourtSVG } from "./CourtSVG";
 import { tacticToSvg, type CourtMode } from "./court-geometry";
 import { FinishOptions } from "./FinishOptions";
-import { movementTrailPieces, wavyPathD } from "./movement-trails-path";
+import { movementTrailPieces, polylinePathD } from "./movement-trails-path";
 
 function lerp(a: number, b: number, t: number) {
   return a + (b - a) * t;
@@ -145,11 +145,11 @@ export function PlayPreview({
           cp: partialCp,
         });
         pieces.forEach((piece, partIdx) => {
-          if (piece.isDribble) {
+          if (piece.isDuringTouch) {
             trails.push(
               <path
                 key={`mv-${actor.id}-${i}-${partIdx}`}
-                d={wavyPathD(piece.points)}
+                d={polylinePathD(piece.points)}
                 fill="none"
                 stroke={color}
                 strokeWidth="0.7"

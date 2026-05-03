@@ -11,9 +11,13 @@ GIT_DIR="/data/git/volleyball_drill.git"
 DOMAIN="volleyball.itorange.online"
 
 echo "=== 1/7 安装 Node.js 20 ==="
-if ! command -v node &>/dev/null; then
+if ! command -v node &>/dev/null || [ "$(node -p "Number(process.versions.node.split('.')[0])")" -lt 20 ]; then
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt-get install -y nodejs
+fi
+if [ "$(node -p "Number(process.versions.node.split('.')[0])")" -lt 20 ]; then
+  echo "Node.js 20+ is required, current version is $(node -v)" >&2
+  exit 1
 fi
 echo "node $(node -v)  npm $(npm -v)"
 

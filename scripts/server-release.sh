@@ -7,6 +7,12 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+NODE_MAJOR="$(node -p "Number(process.versions.node.split('.')[0])")"
+if [ "$NODE_MAJOR" -lt 20 ]; then
+  echo "Node.js 20+ is required, current version is $(node -v)" >&2
+  exit 1
+fi
+
 echo "[1/4] npm ci (skip if lockfile unchanged)"
 LOCK_HASH=$(sha256sum package-lock.json | cut -d' ' -f1)
 CACHED_HASH=""
@@ -22,10 +28,10 @@ echo "[2/4] build"
 NODE_ENV=production npm run build
 
 echo "[3/5] migrate (manual SQL for SQLite compatibility)"
-node scripts/migrate-add-teams.cjs || true
+node scripts/migrate-add-teams.cjs
 
 echo "[4/5] db:push"
-npm run db:push -w @volleyball/api || echo "  db:push had warnings (non-fatal)"
+npm run db:push -w @volleyball/api
 
 echo "[5/5] pm2 restart"
 if command -v pm2 >/dev/null 2>&1; then

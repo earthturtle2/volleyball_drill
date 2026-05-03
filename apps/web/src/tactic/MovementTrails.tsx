@@ -1,7 +1,7 @@
 import type { TacticDocumentV1 } from "@volleyball/shared";
 import { useMemo } from "react";
 import { tacticToSvg, type CourtMode } from "./court-geometry";
-import { movementTrailPieces, wavyPathD, type MovementTrailPiece } from "./movement-trails-path";
+import { movementTrailPieces, polylinePathD, type MovementTrailPiece } from "./movement-trails-path";
 
 interface Props {
   document: TacticDocumentV1;
@@ -12,16 +12,16 @@ interface Props {
 }
 
 function renderTrailPiece(piece: MovementTrailPiece, key: string, color: string) {
-  if (piece.isDribble) {
+  if (piece.isDuringTouch) {
     return (
       <path
         key={key}
-        d={wavyPathD(piece.points)}
+        d={polylinePathD(piece.points)}
         fill="none"
         stroke={color}
         strokeWidth="0.9"
         opacity="0.65"
-        markerEnd="url(#moveArrowDrib)"
+        markerEnd="url(#moveArrowOff)"
       />
     );
   }

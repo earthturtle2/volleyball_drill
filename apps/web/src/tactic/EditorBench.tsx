@@ -21,7 +21,7 @@ export type BenchPlayerOption = {
 };
 
 export type BenchFinishOption = {
-  kind: "shot" | "pass";
+  kind: "shot" | "pass" | "tip" | "cover";
   label: string;
   targetLabel: string;
   priority?: string;

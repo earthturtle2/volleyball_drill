@@ -1,6 +1,8 @@
 import type { TacticDocumentV1 } from "@volleyball/shared";
 
 type Vec = { x: number; y: number; facingDeg?: number };
+type EventRow = NonNullable<TacticDocumentV1["events"]>[number];
+type BallTransferEvent = EventRow & { from: string; to: string };
 
 function lerp(a: number, b: number, s: number) {
   return a + (b - a) * s;
@@ -86,6 +88,18 @@ export function playbackEndMs(doc: TacticDocumentV1): number {
   return Math.max(dur, kfMax);
 }
 
+function isBallTransferEvent(e: EventRow): e is BallTransferEvent {
+  return (e.kind === "pass" || e.kind === "ball_action") && Boolean(e.from && e.to);
+}
+
+function isBlockStartEvent(e: EventRow): boolean {
+  return e.kind === "screen" || e.kind === "block";
+}
+
+function isBlockEndEvent(e: EventRow): boolean {
+  return e.kind === "screen_end" || e.kind === "block_end";
+}
+
 /**
  * The pass currently in the air at tMs, if any.
  * Flight occupies [passT − flyMs, passT). The ball arrives at passT.
@@ -95,7 +109,7 @@ export function findInFlightPass(
   tMs: number,
 ): { t: number; from: string; to: string; flightStart: number } | null {
   const passes = (doc.events ?? [])
-    .filter((e) => e.kind === "pass" && e.from && e.to)
+    .filter(isBallTransferEvent)
     .sort((a, b) => a.t - b.t);
   let best: (typeof passes)[0] | null = null;
   let bestStart = 0;
@@ -126,14 +140,14 @@ export function resolveBallHolderAt(
   const chain = withIdx
     .filter(
       ({ e }) =>
-        (e.kind === "pass" && e.from && e.to) ||
+        isBallTransferEvent(e) ||
         (e.kind === "possess" && e.to) ||
         e.kind === "possess_end",
     )
     .filter(({ e }) => e.t <= tMs)
     .sort((a, b) => a.e.t - b.e.t || a.i - b.i);
   for (const { e } of chain) {
-    if (e.kind === "pass") holder = e.to;
+    if (isBallTransferEvent(e)) holder = e.to;
     else if (e.kind === "possess") holder = e.to;
     else if (e.kind === "possess_end") holder = undefined;
   }
@@ -141,9 +155,8 @@ export function resolveBallHolderAt(
 }
 
 /**
- * For each screener (`from`), apply `screen` and `screen_end` events in time order
- * up to tMs. `screen` sets the overlay; `screen_end` clears it from that moment
- * (later `screen` can set again).
+ * For each blocker (`from`), apply legacy screen or volleyball block events in
+ * time order. Start events set the overlay; end events clear it.
  */
 export function resolveScreenOverlaysAtT(document: TacticDocumentV1, tMs: number): Map<string, number> {
   const out = new Map<string, number>();
@@ -151,19 +164,19 @@ export function resolveScreenOverlaysAtT(document: TacticDocumentV1, tMs: number
   const withIdx = all.map((e, i) => ({ e, i }));
   const fromIds = new Set<string>();
   for (const { e } of withIdx) {
-    if ((e.kind === "screen" || e.kind === "screen_end") && e.from) fromIds.add(e.from);
+    if ((isBlockStartEvent(e) || isBlockEndEvent(e)) && e.from) fromIds.add(e.from);
   }
   for (const fromId of fromIds) {
     const chain = withIdx
       .filter(
         ({ e }) =>
-          (e.kind === "screen" || e.kind === "screen_end") && e.from === fromId && e.t <= tMs,
+          (isBlockStartEvent(e) || isBlockEndEvent(e)) && e.from === fromId && e.t <= tMs,
       )
       .sort((a, b) => a.e.t - b.e.t || a.i - b.i);
     let angle: number | null = null;
     for (const { e } of chain) {
-      if (e.kind === "screen") angle = e.angle ?? 0;
-      else if (e.kind === "screen_end") angle = null;
+      if (isBlockStartEvent(e)) angle = e.angle ?? 0;
+      else if (isBlockEndEvent(e)) angle = null;
     }
     if (angle !== null) out.set(fromId, angle);
   }
@@ -171,7 +184,7 @@ export function resolveScreenOverlaysAtT(document: TacticDocumentV1, tMs: number
 }
 
 /**
- * The `doc.events` index of the `screen` row that is active at tMs for `fromId`, or null.
+ * The `doc.events` index of the active block marker row at tMs for `fromId`, or null.
  */
 export function getActiveScreenEventIndex(
   events: NonNullable<TacticDocumentV1["events"]> | undefined,
@@ -183,13 +196,13 @@ export function getActiveScreenEventIndex(
   const chain = withIdx
     .filter(
       ({ e }) =>
-        (e.kind === "screen" || e.kind === "screen_end") && e.from === fromId && e.t <= tMs,
+        (isBlockStartEvent(e) || isBlockEndEvent(e)) && e.from === fromId && e.t <= tMs,
     )
     .sort((a, b) => a.e.t - b.e.t || a.i - b.i);
   let activeIdx: number | null = null;
   for (const { e, i } of chain) {
-    if (e.kind === "screen") activeIdx = i;
-    else if (e.kind === "screen_end") activeIdx = null;
+    if (isBlockStartEvent(e)) activeIdx = i;
+    else if (isBlockEndEvent(e)) activeIdx = null;
   }
   return activeIdx;
 }

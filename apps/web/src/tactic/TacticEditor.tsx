@@ -223,11 +223,13 @@ function clonePosesForNewKeyframe(
 
 function optionDisplayLabel(option: FinishOption) {
   if (option.label?.trim()) return option.label.trim();
-  return option.kind === "shot" ? "Shot" : "Pass";
+  if (option.kind === "shot") return "Shot";
+  if (option.kind === "tip") return "Tip";
+  return "Cover";
 }
 
 function finishOptionTargetLabel(option: FinishOption, actors: TacticDocumentV1["actors"]) {
-  if (option.kind === "pass" && option.to) {
+  if ((option.kind === "pass" || option.kind === "cover") && option.to) {
     const target = actors.find((actor) => actor.type === "player" && actor.id === option.to);
     return target?.type === "player" ? target.label : option.to;
   }
@@ -461,11 +463,12 @@ export function TacticEditor({
           return;
         }
         const target = doc.actors.find((a): a is PlayerActor => isPlayerActor(a) && a.id === actorId);
-        if (!target || target.team !== "offense") return;
+        const source = doc.actors.find((a): a is PlayerActor => isPlayerActor(a) && a.id === selectedActorId);
+        if (!target || !source || target.team !== source.team) return;
         const option: FinishOption = {
-          kind: "pass",
+          kind: "cover",
           to: actorId,
-          label: `传 ${target.label}`,
+          label: `保护 ${target.label}`,
           priority: "counter",
         };
         onChange(withFinishOptionUpdate(doc, activeFinishEventIndex, selectedActorId, currentT, (options) => [
@@ -492,6 +495,9 @@ export function TacticEditor({
 
       if (tool === "finish") {
         if (!selectedActorId) return;
+        const source = doc.actors.find((a): a is PlayerActor => isPlayerActor(a) && a.id === selectedActorId);
+        if (source?.team === "offense" && tx > 0.5) return;
+        if (source?.team === "defense" && tx < 0.5) return;
         const option: FinishOption = {
           kind: "shot",
           x: tx,
@@ -791,14 +797,15 @@ export function TacticEditor({
     const idx = getActiveScreenEventIndex(evs, selectedActorId, currentT);
     if (idx === null) return;
     const e = evs[idx];
-    if (e.kind === "screen" && e.t === currentT) {
+    if ((e.kind === "screen" || e.kind === "block") && e.t === currentT) {
       onChange({ ...doc, events: evs.filter((_, i) => i !== idx) });
     } else {
-      const startT = e.kind === "screen" ? e.t : currentT;
+      const startT = e.kind === "screen" || e.kind === "block" ? e.t : currentT;
       const endT = Math.max(startT, Math.round((startT + currentT) / 2));
+      const endKind = e.kind === "block" ? "block_end" : "screen_end";
       onChange({
         ...doc,
-        events: [...evs, { t: endT, kind: "screen_end" as const, from: selectedActorId }],
+        events: [...evs, { t: endT, kind: endKind, from: selectedActorId }],
       });
     }
   }, [selectedActorId, doc, onChange, currentT]);
@@ -979,7 +986,7 @@ export function TacticEditor({
                   actorId={a.id}
                   cx={sx}
                   cy={sy}
-                  color={isPassSrc ? "#4caf50" : color}
+                  color={isPassSrc ? "#22d3ee" : color}
                   label={a.label}
                   selected={a.id === selectedActorId}
                   hasBall={a.id === ballHolderId}

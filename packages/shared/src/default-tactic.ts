@@ -14,8 +14,8 @@ export const DEFAULT_TACTIC_DOCUMENT: TacticDocumentV1 = {
     durationMs: 2000,
   },
   teams: {
-    offense: { id: "home", label: "本方", color: "#f97316" },
-    defense: { id: "away", label: "对方", color: "#38bdf8" },
+    offense: { id: "home", label: "本队", color: "#38bdf8" },
+    defense: { id: "away", label: "对手", color: "#f59e0b" },
   },
   actors: [],
   keyframes: [
