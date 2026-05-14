@@ -1,19 +1,21 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { useT, LangToggle } from "./i18n";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
-import { PlaysPage } from "./pages/PlaysPage";
-import { PlayEditPage } from "./pages/PlayEditPage";
-import { LibraryPage } from "./pages/LibraryPage";
-import { TeamsPage } from "./pages/TeamsPage";
-import { MatchPrepsPage } from "./pages/MatchPrepsPage";
-import { MatchPrepViewPage } from "./pages/MatchPrepViewPage";
-import { ViewPage } from "./pages/ViewPage";
-import { AdminPage } from "./pages/AdminPage";
-import { ChangePasswordPage } from "./pages/ChangePasswordPage";
-import { ProfilePage } from "./pages/ProfilePage";
+
+const HomePage = lazy(async () => ({ default: (await import("./pages/HomePage")).HomePage }));
+const LoginPage = lazy(async () => ({ default: (await import("./pages/LoginPage")).LoginPage }));
+const RegisterPage = lazy(async () => ({ default: (await import("./pages/RegisterPage")).RegisterPage }));
+const PlaysPage = lazy(async () => ({ default: (await import("./pages/PlaysPage")).PlaysPage }));
+const PlayEditPage = lazy(async () => ({ default: (await import("./pages/PlayEditPage")).PlayEditPage }));
+const LibraryPage = lazy(async () => ({ default: (await import("./pages/LibraryPage")).LibraryPage }));
+const TeamsPage = lazy(async () => ({ default: (await import("./pages/TeamsPage")).TeamsPage }));
+const MatchPrepsPage = lazy(async () => ({ default: (await import("./pages/MatchPrepsPage")).MatchPrepsPage }));
+const MatchPrepViewPage = lazy(async () => ({ default: (await import("./pages/MatchPrepViewPage")).MatchPrepViewPage }));
+const ViewPage = lazy(async () => ({ default: (await import("./pages/ViewPage")).ViewPage }));
+const AdminPage = lazy(async () => ({ default: (await import("./pages/AdminPage")).AdminPage }));
+const ChangePasswordPage = lazy(async () => ({ default: (await import("./pages/ChangePasswordPage")).ChangePasswordPage }));
+const ProfilePage = lazy(async () => ({ default: (await import("./pages/ProfilePage")).ProfilePage }));
 
 function isAdmin(role: string) {
   return role === "admin" || role === "org_admin";
@@ -184,6 +186,11 @@ function NotFound() {
   return <p className="hint">{t("app.notFound")}</p>;
 }
 
+function RouteLoading() {
+  const { t } = useT();
+  return <p className="hint route-loading">{t("view.loading")}</p>;
+}
+
 function RequireAuth({ children }: { children: ReactNode }) {
   const loc = useLocation();
   const { user, loading } = useAuth();
@@ -204,58 +211,60 @@ function RequireAdmin({ children }: { children: ReactNode }) {
 export function App() {
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/plays" replace />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/plays"
-          element={<RequireAuth><PlaysPage /></RequireAuth>}
-        />
-        <Route
-          path="/library"
-          element={<RequireAuth><LibraryPage /></RequireAuth>}
-        />
-        <Route
-          path="/library/builtin/:id"
-          element={<RequireAuth><LibraryPage /></RequireAuth>}
-        />
-        <Route
-          path="/library/:id"
-          element={<RequireAuth><LibraryPage /></RequireAuth>}
-        />
-        <Route
-          path="/plays/:id"
-          element={<RequireAuth><PlayEditPage /></RequireAuth>}
-        />
-        <Route
-          path="/teams"
-          element={<RequireAuth><TeamsPage /></RequireAuth>}
-        />
-        <Route
-          path="/match-preps"
-          element={<RequireAuth><MatchPrepsPage /></RequireAuth>}
-        />
-        <Route
-          path="/match-preps/:id"
-          element={<RequireAuth><MatchPrepsPage /></RequireAuth>}
-        />
-        <Route
-          path="/admin"
-          element={<RequireAuth><RequireAdmin><AdminPage /></RequireAdmin></RequireAuth>}
-        />
-        <Route
-          path="/profile"
-          element={<RequireAuth><ProfilePage /></RequireAuth>}
-        />
-        <Route
-          path="/password"
-          element={<RequireAuth><ChangePasswordPage /></RequireAuth>}
-        />
-        <Route path="/view/prep/:token" element={<MatchPrepViewPage />} />
-        <Route path="/view/:token" element={<ViewPage />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <Suspense fallback={<RouteLoading />}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/plays"
+            element={<RequireAuth><PlaysPage /></RequireAuth>}
+          />
+          <Route
+            path="/library"
+            element={<RequireAuth><LibraryPage /></RequireAuth>}
+          />
+          <Route
+            path="/library/builtin/:id"
+            element={<RequireAuth><LibraryPage /></RequireAuth>}
+          />
+          <Route
+            path="/library/:id"
+            element={<RequireAuth><LibraryPage /></RequireAuth>}
+          />
+          <Route
+            path="/plays/:id"
+            element={<RequireAuth><PlayEditPage /></RequireAuth>}
+          />
+          <Route
+            path="/teams"
+            element={<RequireAuth><TeamsPage /></RequireAuth>}
+          />
+          <Route
+            path="/match-preps"
+            element={<RequireAuth><MatchPrepsPage /></RequireAuth>}
+          />
+          <Route
+            path="/match-preps/:id"
+            element={<RequireAuth><MatchPrepsPage /></RequireAuth>}
+          />
+          <Route
+            path="/admin"
+            element={<RequireAuth><RequireAdmin><AdminPage /></RequireAdmin></RequireAuth>}
+          />
+          <Route
+            path="/profile"
+            element={<RequireAuth><ProfilePage /></RequireAuth>}
+          />
+          <Route
+            path="/password"
+            element={<RequireAuth><ChangePasswordPage /></RequireAuth>}
+          />
+          <Route path="/view/prep/:token" element={<MatchPrepViewPage />} />
+          <Route path="/view/:token" element={<ViewPage />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </Layout>
   );
 }

@@ -72,6 +72,7 @@ export function PlayEditPage() {
   const [jsonText, setJsonText] = useState("");
   const [showJson, setShowJson] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [teachingMode, setTeachingMode] = useState(false);
   const [tMs, setTms] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -553,6 +554,17 @@ export function PlayEditPage() {
     }
   }
 
+  async function saveThenShare() {
+    await doSave();
+    await share();
+  }
+
+  function enterTeachingMode() {
+    setShowJson(false);
+    setShowTemplates(false);
+    setTeachingMode(true);
+  }
+
   const duration = doc?.meta?.durationMs ?? 8000;
   const effectiveEnd = doc ? playbackEndMs(doc) : duration;
   const statusLabel = {
@@ -575,7 +587,7 @@ export function PlayEditPage() {
   };
 
   return (
-    <div>
+    <div className={teachingMode ? "play-edit play-edit--teaching" : "play-edit"}>
       <p style={{ margin: "0 0 0.5rem" }}>
         <Link to="/plays" className="muted">
           {t("edit.back")}
@@ -586,7 +598,7 @@ export function PlayEditPage() {
         <span className={`save-status save-status--${saveStatus}`}>{statusLabel}</span>
       </div>
       {err ? <p className="error">{err}</p> : null}
-      {viewUrl ? (
+      {viewUrl && !teachingMode ? (
         <div className="card" style={{ marginBottom: "1rem" }}>
           <p className="hint" style={{ marginTop: 0 }}>
             {t("edit.viewHint")}
@@ -597,207 +609,252 @@ export function PlayEditPage() {
         </div>
       ) : null}
       <div className="row-actions" style={{ marginBottom: "1rem" }}>
-        <button type="button" className="btn btn-primary" onClick={() => void doSave()}>
-          {t("edit.save")}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={!canUndo}
-          onClick={undo}
-          title="⌘Z / Ctrl+Z"
-        >
-          {t("edit.undo")}
-        </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={!canRedo}
-          onClick={redo}
-          title="⌘⇧Z / Ctrl+Y"
-        >
-          {t("edit.redo")}
-        </button>
-        <button type="button" className="btn" onClick={() => void duplicate()}>
-          {t("edit.duplicate")}
-        </button>
-        <button type="button" className="btn" onClick={() => void share()}>
-          {t("edit.share")}
-        </button>
-        <button type="button" className="btn" onClick={() => void del()}>
-          {t("edit.delete")}
-        </button>
+        {teachingMode ? (
+          <>
+            <button type="button" className="btn btn-primary" onClick={() => void saveThenShare()}>
+              {t("edit.shareForTeaching")}
+            </button>
+            {viewUrl ? (
+              <a href={viewUrl} target="_blank" rel="noreferrer" className="btn btn-ghost">
+                {t("edit.openStudentView")}
+              </a>
+            ) : null}
+            <button type="button" className="btn" onClick={() => setTeachingMode(false)}>
+              {t("edit.exitTeachingMode")}
+            </button>
+          </>
+        ) : (
+          <>
+            <button type="button" className="btn btn-primary" onClick={() => void doSave()}>
+              {t("edit.save")}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!canUndo}
+              onClick={undo}
+              title="⌘Z / Ctrl+Z"
+            >
+              {t("edit.undo")}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={!canRedo}
+              onClick={redo}
+              title="⌘⇧Z / Ctrl+Y"
+            >
+              {t("edit.redo")}
+            </button>
+            <button type="button" className="btn" onClick={() => void duplicate()}>
+              {t("edit.duplicate")}
+            </button>
+            <button type="button" className="btn" onClick={() => void share()}>
+              {t("edit.share")}
+            </button>
+            <button type="button" className="btn btn-ghost" onClick={enterTeachingMode}>
+              {t("edit.teachingMode")}
+            </button>
+            <button type="button" className="btn" onClick={() => void del()}>
+              {t("edit.delete")}
+            </button>
+          </>
+        )}
       </div>
-      <div className="field">
-        <label htmlFor="n">{t("edit.name")}</label>
-        <input
-          id="n"
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value);
-            setSaveStatus("unsaved");
-          }}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="playCategory">{t("edit.tacticCategory")}</label>
-        <div
-          className="category-combobox"
-          onClick={() => categoryInputRef.current?.focus()}
-        >
-          <input
-            ref={categoryInputRef}
-            id="playCategory"
-            list="play-category-options"
-            value={category}
-            maxLength={64}
-            placeholder={t("edit.tacticCategoryPlaceholder")}
-            onChange={(e) => handleCategoryChange(e.target.value)}
-          />
-          <span className="category-combobox__chevron" aria-hidden="true">⌄</span>
-        </div>
-        <datalist id="play-category-options">
-          {categoryOptions.map((option) => (
-            <option key={option} value={option} />
-          ))}
-        </datalist>
-        <p className="muted" style={{ margin: "0.35rem 0 0" }}>
-          {t("edit.tacticCategoryHint")}
-        </p>
-      </div>
-      <div className="field">
-        <label htmlFor="d">{t("edit.description")}</label>
-        <textarea
-          id="d"
-          rows={2}
-          value={description}
-          onChange={(e) => {
-            setDescription(e.target.value);
-            setSaveStatus("unsaved");
-          }}
-        />
-      </div>
-      <div className="field">
-        <label>{t("edit.librarySharing")}</label>
-        <div className="team-checkbox-grid">
-          {(["all_coaches", "hidden", "partial"] as const).map((scope) => (
-            <label key={scope} className="team-checkbox">
-              <input
-                type="radio"
-                name="libraryScope"
-                checked={libraryScope === scope}
-                onChange={() => {
-                  setLibraryScope(scope);
-                  if (scope !== "partial") setSharedWithUserIds([]);
-                  setSaveStatus("unsaved");
-                }}
-              />
-              {t(`edit.libraryScope.${scope}`)}
-            </label>
-          ))}
-        </div>
-        <p className="muted" style={{ margin: "0.35rem 0 0" }}>
-          {libraryScope === "all_coaches"
-            ? t("edit.libraryVisibleAll")
-            : libraryScope === "hidden"
-              ? t("edit.libraryHidden")
-              : t("edit.libraryPartialHint")}
-        </p>
-      </div>
-      {libraryScope === "partial" ? (
-        <div className="field">
-          <label>{t("edit.sharedAccounts")}</label>
-          <div className="team-checkbox-grid">
-            {accounts
-              .filter((account) => account.id !== user.id)
-              .map((account) => {
-                const checked = sharedWithUserIds.includes(account.id);
-                return (
-                  <label
-                    key={account.id}
-                    className="team-checkbox"
-                    style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        setSharedWithUserIds((ids) =>
-                          e.target.checked ? [...ids, account.id] : ids.filter((id) => id !== account.id),
-                        );
-                        setSaveStatus("unsaved");
-                      }}
-                    />
-                    {account.avatarUrl ? (
-                      <img
-                        src={account.avatarUrl}
-                        alt=""
-                        className="avatar-thumb"
-                        width={28}
-                        height={28}
-                        style={{ width: 28, height: 28 }}
-                      />
-                    ) : null}
-                    <span>{account.name || account.email}</span>
-                  </label>
-                );
-              })}
+
+      {teachingMode ? (
+        <section className="teaching-mode-panel card">
+          <div>
+            <p className="home-kicker">{t("edit.teachingMode")}</p>
+            <h2>{name || t("edit.title")}</h2>
+            <p className="hint">{description || t("edit.teachingModeBody")}</p>
           </div>
-          {accounts.filter((account) => account.id !== user.id).length === 0 ? (
-            <p className="muted" style={{ margin: "0.35rem 0 0" }}>
-              {t("edit.noShareAccounts")}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
-      {teams.length > 0 ? (
+          <div className="teaching-mode-panel__meta">
+            {category ? <span className="status-pill">{category}</span> : null}
+            <span className="status-pill">{statusLabel}</span>
+            {viewUrl ? (
+              <a href={viewUrl} target="_blank" rel="noreferrer">
+                {t("edit.teachingShareReady")}
+              </a>
+            ) : (
+              <span className="muted">{t("edit.teachingHint")}</span>
+            )}
+          </div>
+        </section>
+      ) : (
         <>
           <div className="field">
-            <label htmlFor="rosterTeam">{t("edit.rosterTeam")}</label>
-            <select
-              id="rosterTeam"
-              value={rosterTeamId}
-              onChange={(e) => setRosterTeamId(e.target.value)}
-            >
-              <option value="">{t("edit.defaultRoster")}</option>
-              {teams.map((tm) => (
-                <option key={tm.id} value={tm.id}>
-                  {tm.name}
-                </option>
-              ))}
-            </select>
+            <label htmlFor="n">{t("edit.name")}</label>
+            <input
+              id="n"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                setSaveStatus("unsaved");
+              }}
+            />
           </div>
           <div className="field">
-            <label>{t("edit.assignedTeams")}</label>
-            <div className="team-checkbox-grid">
-              {teams.map((tm) => {
-                const checked = assignedTeamIds.includes(tm.id);
-                return (
-                  <label key={tm.id} className="team-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(e) => {
-                        setAssignedTeamIds((ids) =>
-                          e.target.checked ? [...ids, tm.id] : ids.filter((id) => id !== tm.id),
-                        );
-                        setSaveStatus("unsaved");
-                      }}
-                    />
-                    <span style={{ background: tm.color }} />
-                    {tm.name}
-                  </label>
-                );
-              })}
+            <label htmlFor="playCategory">{t("edit.tacticCategory")}</label>
+            <div
+              className="category-combobox"
+              onClick={() => categoryInputRef.current?.focus()}
+            >
+              <input
+                ref={categoryInputRef}
+                id="playCategory"
+                list="play-category-options"
+                value={category}
+                maxLength={64}
+                placeholder={t("edit.tacticCategoryPlaceholder")}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+              />
+              <span className="category-combobox__chevron" aria-hidden="true">⌄</span>
             </div>
+            <datalist id="play-category-options">
+              {categoryOptions.map((option) => (
+                <option key={option} value={option} />
+              ))}
+            </datalist>
             <p className="muted" style={{ margin: "0.35rem 0 0" }}>
-              {assignedTeamIds.length === 0 ? t("edit.assignedAllTeamsHint") : t("edit.assignedTeamsHint")}
+              {t("edit.tacticCategoryHint")}
             </p>
           </div>
+          <div className="field">
+            <label htmlFor="d">{t("edit.description")}</label>
+            <textarea
+              id="d"
+              rows={2}
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setSaveStatus("unsaved");
+              }}
+            />
+          </div>
+          <div className="field">
+            <label>{t("edit.librarySharing")}</label>
+            <div className="team-checkbox-grid">
+              {(["all_coaches", "hidden", "partial"] as const).map((scope) => (
+                <label key={scope} className="team-checkbox">
+                  <input
+                    type="radio"
+                    name="libraryScope"
+                    checked={libraryScope === scope}
+                    onChange={() => {
+                      setLibraryScope(scope);
+                      if (scope !== "partial") setSharedWithUserIds([]);
+                      setSaveStatus("unsaved");
+                    }}
+                  />
+                  {t(`edit.libraryScope.${scope}`)}
+                </label>
+              ))}
+            </div>
+            <p className="muted" style={{ margin: "0.35rem 0 0" }}>
+              {libraryScope === "all_coaches"
+                ? t("edit.libraryVisibleAll")
+                : libraryScope === "hidden"
+                  ? t("edit.libraryHidden")
+                  : t("edit.libraryPartialHint")}
+            </p>
+          </div>
+          {libraryScope === "partial" ? (
+            <div className="field">
+              <label>{t("edit.sharedAccounts")}</label>
+              <div className="team-checkbox-grid">
+                {accounts
+                  .filter((account) => account.id !== user.id)
+                  .map((account) => {
+                    const checked = sharedWithUserIds.includes(account.id);
+                    return (
+                      <label
+                        key={account.id}
+                        className="team-checkbox"
+                        style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setSharedWithUserIds((ids) =>
+                              e.target.checked ? [...ids, account.id] : ids.filter((id) => id !== account.id),
+                            );
+                            setSaveStatus("unsaved");
+                          }}
+                        />
+                        {account.avatarUrl ? (
+                          <img
+                            src={account.avatarUrl}
+                            alt=""
+                            className="avatar-thumb"
+                            width={28}
+                            height={28}
+                            style={{ width: 28, height: 28 }}
+                          />
+                        ) : null}
+                        <span>{account.name || account.email}</span>
+                      </label>
+                    );
+                  })}
+              </div>
+              {accounts.filter((account) => account.id !== user.id).length === 0 ? (
+                <p className="muted" style={{ margin: "0.35rem 0 0" }}>
+                  {t("edit.noShareAccounts")}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+          {teams.length > 0 ? (
+            <>
+              <div className="field">
+                <label htmlFor="rosterTeam">{t("edit.rosterTeam")}</label>
+                <select
+                  id="rosterTeam"
+                  value={rosterTeamId}
+                  onChange={(e) => setRosterTeamId(e.target.value)}
+                >
+                  <option value="">{t("edit.defaultRoster")}</option>
+                  {teams.map((tm) => (
+                    <option key={tm.id} value={tm.id}>
+                      {tm.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="field">
+                <label>{t("edit.assignedTeams")}</label>
+                <div className="team-checkbox-grid">
+                  {teams.map((tm) => {
+                    const checked = assignedTeamIds.includes(tm.id);
+                    return (
+                      <label key={tm.id} className="team-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setAssignedTeamIds((ids) =>
+                              e.target.checked ? [...ids, tm.id] : ids.filter((id) => id !== tm.id),
+                            );
+                            setSaveStatus("unsaved");
+                          }}
+                        />
+                        <span style={{ background: tm.color }} />
+                        {tm.name}
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="muted" style={{ margin: "0.35rem 0 0" }}>
+                  {assignedTeamIds.length === 0 ? t("edit.assignedAllTeamsHint") : t("edit.assignedTeamsHint")}
+                </p>
+              </div>
+            </>
+          ) : null}
         </>
-      ) : null}
+      )}
 
-      {doc ? (
+      {doc && !teachingMode ? (
         <TacticEditor
           document={doc}
           onChange={handleDocChange}
@@ -810,8 +867,11 @@ export function PlayEditPage() {
       ) : null}
 
       {doc ? (
-        <div className="card" style={{ marginTop: "1rem" }}>
-          <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.05rem" }}>{t("edit.preview")}</h2>
+        <div className={teachingMode ? "card teaching-preview-card" : "card"} style={{ marginTop: "1rem" }}>
+          <h2 style={{ margin: "0 0 0.5rem", fontSize: "1.05rem" }}>
+            {teachingMode ? t("edit.teachingPreview") : t("edit.preview")}
+          </h2>
+          {teachingMode ? <p className="hint">{t("edit.teachingModeBody")}</p> : null}
           <PlayPreview document={doc} tMs={tMs} courtMode={courtModeFromDocument(doc)} />
           <div className="preview-controls view-controls">
             <div className="preview-controls__timeline-row">
@@ -936,6 +996,7 @@ export function PlayEditPage() {
         </div>
       ) : null}
 
+      {!teachingMode ? (
       <details
         style={{ marginTop: "1rem" }}
         open={showJson}
@@ -960,8 +1021,9 @@ export function PlayEditPage() {
           </p>
         </div>
       </details>
+      ) : null}
 
-      {showTemplates && doc ? (
+      {showTemplates && doc && !teachingMode ? (
         <TemplateLibrary
           confirmBeforeSelect={!!doc}
           onSelect={(tmpl) => {
